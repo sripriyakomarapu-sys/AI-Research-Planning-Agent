@@ -1,0 +1,50 @@
+{
+    "scenarios": [
+        {
+            "name": "Indian Electric Two-Wheeler Market",
+            "complexity": "High",
+            "objective": "Understand the Indian electric two-wheeler market from 2020-2026 for a management audience. Focus on market growth, competitors, government policy, consumer adoption and challenges."
+        },
+        {
+            "name": "AI in Healthcare",
+            "complexity": "High",
+            "objective": "Analyze the adoption of artificial intelligence in healthcare, including applications, benefits, risks, regulations and future trends."
+        },
+        {
+            "name": "Online Education Market",
+            "complexity": "Medium",
+            "objective": "Study the growth of online education platforms, major competitors, consumer behavior, technology trends and challenges."
+        }
+    ],
+    "incomplete_plan_cases": [
+        {
+            "name": "Incomplete Market Plan",
+            "initial_plan": [
+                "Market overview",
+                "Competitor analysis",
+                "Final synthesis"
+            ],
+            "missing_areas": [
+                "Government policy",
+                "Consumer adoption",
+                "Industry challenges"
+            ],
+            "correction": "Validation identifies the missing focus areas and the refinement stage adds them."
+        },
+        {
+            "name": "Incomplete AI Healthcare Plan",
+            "initial_plan": [
+                "AI applications",
+                "Benefits",
+                "Final synthesis"
+            ],
+            "missing_areas": [
+                "Risks",
+                "Regulations",
+                "Ethical considerations",
+                "Future trends"
+            ],
+            "correction": "Validation detects the missing areas and the refinement stage adds the required research tasks."
+        }
+    ]
+}
