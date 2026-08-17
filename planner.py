@@ -1,23 +1,57 @@
 import json
 import os
+
+import streamlit as st
 from groq import Groq
 
 
 MODEL = "llama-3.1-8b-instant"
 
 
+# ============================================================
+# GET GROQ API KEY
+# ============================================================
+
+def get_groq_api_key():
+    """
+    Get the Groq API key.
+
+    Works both:
+    1. Locally using environment variable
+    2. On Streamlit Cloud using st.secrets
+    """
+
+    # Local environment variable
+    api_key = os.getenv("GROQ_API_KEY")
+
+    # Streamlit Cloud secrets
+    if not api_key:
+        try:
+            api_key = st.secrets["GROQ_API_KEY"]
+        except Exception:
+            api_key = None
+
+    return api_key
+
+
+# ============================================================
+# GENERATE AI RESEARCH PLAN
+# ============================================================
+
 def generate_ai_plan(data):
 
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = get_groq_api_key()
 
     if not api_key:
         return {
             "error": "GROQ_API_KEY is not configured."
         }
 
-    client = Groq(api_key=api_key)
+    try:
 
-    prompt = f"""
+        client = Groq(api_key=api_key)
+
+        prompt = f"""
 You are an AI Research Planning Agent.
 
 Your task is to PLAN research, NOT perform the research.
@@ -52,6 +86,7 @@ PREFERRED / RESTRICTED SOURCE TYPES:
 ADDITIONAL CONSTRAINTS:
 {data['constraints']}
 
+
 PLANNING REQUIREMENTS:
 
 1. Break the objective into meaningful research questions.
@@ -66,6 +101,7 @@ PLANNING REQUIREMENTS:
 10. Check that every important part of the original objective is covered.
 11. Consider whether current information is required.
 12. Keep the final plan concise enough to execute.
+
 
 Return ONLY valid JSON.
 
@@ -137,7 +173,9 @@ Use EXACTLY this structure:
 }}
 """
 
-    try:
+        # ====================================================
+        # CALL GROQ
+        # ====================================================
 
         response = client.chat.completions.create(
             model=MODEL,
@@ -145,8 +183,9 @@ Use EXACTLY this structure:
                 {
                     "role": "system",
                     "content": (
-                        "You are a research planning specialist. "
-                        "Return only valid JSON."
+                        "You are an expert research planning specialist. "
+                        "Return ONLY valid JSON. "
+                        "Do not include markdown or explanations outside JSON."
                     )
                 },
                 {
@@ -160,19 +199,26 @@ Use EXACTLY this structure:
 
         result = response.choices[0].message.content
 
-        # Remove markdown code fences if model adds them
+        # ====================================================
+        # CLEAN RESPONSE
+        # ====================================================
+
         result = result.strip()
 
         if result.startswith("```json"):
             result = result[7:]
 
-        if result.startswith("```"):
+        elif result.startswith("```"):
             result = result[3:]
 
         if result.endswith("```"):
             result = result[:-3]
 
         result = result.strip()
+
+        # ====================================================
+        # CONVERT JSON STRING TO PYTHON DICTIONARY
+        # ====================================================
 
         return json.loads(result)
 
@@ -183,69 +229,101 @@ Use EXACTLY this structure:
         }
 
 
+# ============================================================
+# FALLBACK PLAN
+# ============================================================
+
 def fallback_plan(data):
 
     objective = data["objective"]
 
     return {
+
         "research_objective": objective,
 
         "research_questions": [
+
             {
                 "id": "T1",
-                "question": "What is the background and current context of the research topic?",
+
+                "question":
+                    "What is the background and current context of the research topic?",
+
                 "information_required": [
                     "Background",
                     "Definitions",
                     "Current context",
                     "Historical context"
                 ],
+
                 "source_types": [
                     "Government reports",
                     "Academic papers",
                     "Industry reports"
                 ],
+
                 "depends_on": [],
+
                 "parallelizable": True,
-                "expected_result": "Background and context of the topic"
+
+                "expected_result":
+                    "Background and context of the topic"
             },
+
             {
                 "id": "T2",
-                "question": "Who are the major stakeholders, organizations or competitors?",
+
+                "question":
+                    "Who are the major stakeholders, organizations or competitors?",
+
                 "information_required": [
                     "Major organizations",
                     "Stakeholders",
                     "Competitors",
                     "Market participants"
                 ],
+
                 "source_types": [
                     "Company websites",
                     "Industry reports",
                     "Market research"
                 ],
+
                 "depends_on": [],
+
                 "parallelizable": True,
-                "expected_result": "Stakeholder and competitor landscape"
+
+                "expected_result":
+                    "Stakeholder and competitor landscape"
             },
+
             {
                 "id": "T3",
-                "question": "What are the major trends, opportunities and challenges?",
+
+                "question":
+                    "What are the major trends, opportunities and challenges?",
+
                 "information_required": [
                     "Major trends",
                     "Opportunities",
                     "Risks",
                     "Challenges"
                 ],
+
                 "source_types": [
                     "Research reports",
                     "News sources",
                     "Academic publications"
                 ],
+
                 "depends_on": [
                     "T1"
                 ],
+
                 "parallelizable": False,
-                "expected_result": "Trend, opportunity and challenge analysis"
+
+                "expected_result":
+                    "Trend, opportunity and challenge analysis"
             }
         ],
 
@@ -257,21 +335,29 @@ def fallback_plan(data):
         ],
 
         "dependencies": [
+
             {
                 "task": "T3",
+
                 "depends_on": [
                     "T1"
                 ],
-                "reason": "Trend analysis requires background context."
+
+                "reason":
+                    "Trend analysis requires background context."
             },
+
             {
                 "task": "S1",
+
                 "depends_on": [
                     "T1",
                     "T2",
                     "T3"
                 ],
-                "reason": "Synthesis requires outputs from research tasks."
+
+                "reason":
+                    "Synthesis requires outputs from research tasks."
             }
         ],
 
@@ -283,28 +369,44 @@ def fallback_plan(data):
         ],
 
         "synthesis_task": {
+
             "id": "S1",
-            "description": "Combine the findings from all research tasks into a final structured synthesis.",
+
+            "description":
+                "Combine the findings from all research tasks into a final structured synthesis.",
+
             "depends_on": [
                 "T1",
                 "T2",
                 "T3"
             ],
-            "expected_result": "Final research synthesis"
+
+            "expected_result":
+                "Final research synthesis"
         },
 
         "validation": {
-            "coverage": "The plan covers background, stakeholders, trends, challenges and synthesis.",
+
+            "coverage":
+                "The plan covers background, stakeholders, trends, challenges and synthesis.",
+
             "missing_areas": [],
+
             "status": "PASS"
         },
 
         "final_research_structure": [
+
             "1. Introduction and background",
+
             "2. Current landscape",
+
             "3. Stakeholder or competitor analysis",
+
             "4. Trends and opportunities",
+
             "5. Challenges and risks",
+
             "6. Final synthesis and conclusion"
         ]
     }
