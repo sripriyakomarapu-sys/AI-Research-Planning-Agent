@@ -1,6 +1,20 @@
-import streamlit as st
+import os
 import json
+import streamlit as st
 
+
+# ============================================================
+# LOAD GROQ API KEY FROM STREAMLIT CLOUD SECRETS
+# ============================================================
+
+try:
+    if "GROQ_API_KEY" in st.secrets:
+        os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
+except Exception:
+    pass
+
+
+# Import project modules AFTER loading the secret
 from planner import generate_ai_plan, fallback_plan
 from validator import validate_plan, refine_plan
 
